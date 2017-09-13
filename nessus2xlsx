@@ -1,0 +1,63 @@
+#!/usr/bin/python
+# Transform Nessus xml to Excel
+# Author: Benjamin Kellermann, License: GPLv3
+import sys
+import os
+
+if len(sys.argv) < 3:
+	sys.exit('Usage: %s <input-xml.nessus> <output.xlsx>' % sys.argv[0])
+
+if not os.path.exists(sys.argv[1]):
+	sys.exit('ERROR: Input %s was not found!' % sys.argv[1])
+
+if os.path.exists(sys.argv[2]):
+	sys.exit('ERROR: Output %s already exists!' % sys.argv[2])
+
+import xml.etree.ElementTree as ET
+from openpyxl import Workbook
+
+xml = ET.parse(sys.argv[1])
+root = xml.getroot()
+
+ns = {'cm': 'http://www.nessus.org/cm'}
+severity_levels = {
+	0: 'None',
+	1: 'Low',
+	2: 'Medium',
+	3: 'High'
+}
+
+# Open up a new excel file
+wb = Workbook()
+
+ws = wb.create_sheet()
+ws.title = "Vulnerabilities"
+ws.append(["Hostname", "Plugin ID", "Severity", "Name", "Risk", "Description", "Output"])
+
+for host in root.iter('ReportHost'):
+	hostname = host.get('name')
+
+	for report_item in host.iter('ReportItem'):
+		plugin_id = report_item.get('pluginID')
+		severity = severity_levels.get(int(report_item.get('severity')))
+		description = report_item.find('description').text
+		risk = report_item.find('risk_factor').text
+		if plugin_id == '21157':
+			name = report_item.find('cm:compliance-check-name',ns).text
+#			desc_index = description.find('\n')
+#			description = description[desc_index+2:]
+			output = 'TODO'
+		else:
+			name = report_item.find('plugin_name').text
+			output = report_item.find('plugin_output')
+			if output != None:
+				output = output.text
+			else:
+				output = ""
+
+
+		ws.append([hostname, plugin_id, severity, name, risk, description, output])
+
+
+# Save the file
+wb.save(sys.argv[2])
