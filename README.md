@@ -5,8 +5,8 @@ Excel exporters for some Pentest tools
   Transform Nessus/nmap xml to Excel
 
 # Authors
-Benjamin Kellermann
-Björn Kirschner
+* Benjamin Kellermann
+* Björn Kirschner
 
 # License
 GPLv3, see License
