@@ -1,8 +1,10 @@
 #!/usr/bin/python
 # Transform Nessus xml to Excel
-# Author: Benjamin Kellermann, License: GPLv3
+# Authors: Benjamin Kellermann, Björn Kirschner
+# License: GPLv3
 import sys
 import os
+import re
 
 if len(sys.argv) < 3:
 	sys.exit('Usage: %s <input-xml.nessus> <output.xlsx>' % sys.argv[0])
@@ -32,7 +34,8 @@ wb = Workbook()
 
 ws = wb.create_sheet()
 ws.title = "Vulnerabilities"
-ws.append(["Hostname", "Plugin ID", "Severity", "Name", "Risk", "Description", "Output"])
+
+ws.append(["Section", "Hostname", "Risk", "Compliance Result", "Output", "Name", "Description", "Solution", "See Also", "References", "Plugin ID", "Severity"])
 
 for host in root.iter('ReportHost'):
 	hostname = host.get('name')
@@ -40,24 +43,63 @@ for host in root.iter('ReportHost'):
 	for report_item in host.iter('ReportItem'):
 		plugin_id = report_item.get('pluginID')
 		severity = severity_levels.get(int(report_item.get('severity')))
-		description = report_item.find('description').text
-		risk = report_item.find('risk_factor').text
-		if plugin_id == '21157':
+
+		description_complete = report_item.find('description').text
+
+#		reg = description.find("Solution")
+		reg = re.search(r'(.*)Solution : (.*)See Also : (.*)Reference\(s\) : (.*)', description_complete, re.DOTALL)
+#		reg = re.match(r'(.*)secure(.*)net', hostname, re.M)
+		if reg:
+			description = re.sub(r'(^|$)(\x0a)+', r'', reg.group(1), re.DOTALL)[1:]
+			solution = re.sub(r'(^|$)(\x0a)+', r'', reg.group(2), re.DOTALL)
+			see_also = re.sub(r'(^|$)(\x0a)+', r'', reg.group(3), re.DOTALL)
+#                        print ":".join("{:02x}".format(ord(c)) for c in see_also)
+
+			reference = re.sub(r'(^|$)(\x0a)+', r'', reg.group(4), re.DOTALL)
+#			print reg.group(4)
+#			print reg.group(2)
+		else:
+			description = ""
+			solution = ""
+			see_also = ""
+			reference = ""
+#			print "nop"
+#		print reg.group(3)
+#		print reg.group(4)
+#		print description
+		risk_start = description_complete.find("[RISK=")
+		if risk_start != -1:
+			risk_end = description_complete.find("]", risk_start)
+			risk = description_complete[risk_start+6:risk_end]
+		else:
+			risk = "" #no risk defined
+		if plugin_id == '21156':
 			name = report_item.find('cm:compliance-check-name',ns).text
-#			desc_index = description.find('\n')
-#			description = description[desc_index+2:]
-			output = 'TODO'
+			section = description_complete[1:description_complete.find(' ')]
+			actual_value = report_item.find('cm:compliance-actual-value',ns)
+			if actual_value is not None:
+				output = actual_value.text
+			actual_solution = report_item.find('cm:compliance-solution',ns)
+			if actual_solution is not None:
+				solution = actual_solution.text
+			compliance_result = report_item.find('cm:compliance-result',ns)
+			if compliance_result is not None:
+				result = compliance_result.text
+			desc_index = description_complete.find('\n')
+			description = description_complete[description_complete.find('\n\n')+2:]
+#						description_complete[description_complete.find('\n\n')+2:description_complete.find('Solution')-2]
+#                        print ":".join("{:02x}".format(ord(c)) for c in output)
+
 		else:
 			name = report_item.find('plugin_name').text
 			output = report_item.find('plugin_output')
+			section = ""
+			result = ""
 			if output != None:
 				output = output.text
 			else:
 				output = ""
-
-
-		ws.append([hostname, plugin_id, severity, name, risk, description, output])
-
+		ws.append([section, hostname, risk, result, output, name, description, solution, see_also, reference, plugin_id, severity])
 
 # Save the file
 wb.save(sys.argv[2])
