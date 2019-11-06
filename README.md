@@ -7,6 +7,7 @@ Excel exporters for some Pentest tools
 # Authors
 * Benjamin Kellermann
 * Björn Kirschner
+* Jan Rude
 
 # License
 GPLv3, see License

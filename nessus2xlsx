@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # Transform Nessus xml to Excel
-# Authors: Benjamin Kellermann, Björn Kirschner
+# Authors: Benjamin Kellermann, Björn Kirschner, Jan Rude
 # License: GPLv3
 import sys
 import os
@@ -17,89 +17,190 @@ if os.path.exists(sys.argv[2]):
 
 import xml.etree.ElementTree as ET
 from openpyxl import Workbook
-
-xml = ET.parse(sys.argv[1])
-root = xml.getroot()
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 
 ns = {'cm': 'http://www.nessus.org/cm'}
+
 severity_levels = {
 	0: 'None',
 	1: 'Low',
 	2: 'Medium',
-	3: 'High'
+	3: 'High',
+	4: 'Critical'
 }
+
+xml = ET.parse(sys.argv[1])
+root = xml.getroot()
 
 # Open up a new excel file
 wb = Workbook()
+vulns_wb = wb.active
+vulns_wb.title = "Vulnerabilities"
+vulns_wb.append(["Hostname", "Port", "Severity", "MGM Rating", "Comment", "Name", "Description", "Output", "Solution", "See Also"])
 
-ws = wb.create_sheet()
-ws.title = "Vulnerabilities"
+# Add a default style with striped rows and banded columns
+style = TableStyleInfo(name="TableStyleMedium2", showFirstColumn=False,
+                       showLastColumn=False, showRowStripes=True, showColumnStripes=True)
 
-ws.append(["Section", "Hostname", "Risk", "Compliance Result", "Output", "Name", "Description", "Solution", "See Also", "References", "Plugin ID", "Severity"])
-
+# Check if report has compliance checks in it
+compliance_wb = ''
+for report_item in root.iter('ReportItem'):
+	if "Compliance" in report_item.get('pluginName'):
+		compliance_wb = wb.create_sheet()
+		compliance_wb.title = "Compliance Checks"
+		compliance_wb.append(["Hostname", "Result", "Name", "Output", "Description", "Solution", "See Also"])
+		break
+	
+# Iterate through findings
 for host in root.iter('ReportHost'):
 	hostname = host.get('name')
 
 	for report_item in host.iter('ReportItem'):
-		plugin_id = report_item.get('pluginID')
 		severity = severity_levels.get(int(report_item.get('severity')))
+		description = report_item.find('description').text if not (report_item.find('description') is None) else ""
 
-		description_complete = report_item.find('description').text
-
-#		reg = description.find("Solution")
-		reg = re.search(r'(.*)Solution : (.*)See Also : (.*)Reference\(s\) : (.*)', description_complete, re.DOTALL)
-#		reg = re.match(r'(.*)secure(.*)net', hostname, re.M)
-		if reg:
-			description = re.sub(r'(^|$)(\x0a)+', r'', reg.group(1), re.DOTALL)[1:]
-			solution = re.sub(r'(^|$)(\x0a)+', r'', reg.group(2), re.DOTALL)
-			see_also = re.sub(r'(^|$)(\x0a)+', r'', reg.group(3), re.DOTALL)
-#                        print ":".join("{:02x}".format(ord(c)) for c in see_also)
-
-			reference = re.sub(r'(^|$)(\x0a)+', r'', reg.group(4), re.DOTALL)
-#			print reg.group(4)
-#			print reg.group(2)
-		else:
-			description = ""
-			solution = ""
-			see_also = ""
-			reference = ""
-#			print "nop"
-#		print reg.group(3)
-#		print reg.group(4)
-#		print description
-		risk_start = description_complete.find("[RISK=")
-		if risk_start != -1:
-			risk_end = description_complete.find("]", risk_start)
-			risk = description_complete[risk_start+6:risk_end]
-		else:
-			risk = "" #no risk defined
-		if plugin_id == '21156':
-			name = report_item.find('cm:compliance-check-name',ns).text
-			section = description_complete[1:description_complete.find(' ')]
-			actual_value = report_item.find('cm:compliance-actual-value',ns)
-			if actual_value is not None:
-				output = actual_value.text
-			actual_solution = report_item.find('cm:compliance-solution',ns)
-			if actual_solution is not None:
-				solution = actual_solution.text
-			compliance_result = report_item.find('cm:compliance-result',ns)
-			if compliance_result is not None:
-				result = compliance_result.text
-			desc_index = description_complete.find('\n')
-			description = description_complete[description_complete.find('\n\n')+2:]
-#						description_complete[description_complete.find('\n\n')+2:description_complete.find('Solution')-2]
-#                        print ":".join("{:02x}".format(ord(c)) for c in output)
-
-		else:
-			name = report_item.find('plugin_name').text
-			output = report_item.find('plugin_output')
-			section = ""
-			result = ""
-			if output != None:
-				output = output.text
+		pluginFamily = report_item.get('pluginFamily')
+		# Compliance Check
+		if pluginFamily == "Policy Compliance":
+			name = report_item.find('cm:compliance-check-name', ns).text
+			compliance_result = report_item.find('cm:compliance-result', ns)
+			result = compliance_result.text
+			actual_value = report_item.find('cm:compliance-actual-value', ns)
+			if actual_value is None: # usually when PASSED
+				output = ''
 			else:
-				output = ""
-		ws.append([section, hostname, risk, result, output, name, description, solution, see_also, reference, plugin_id, severity])
+				output = actual_value.text
+			actual_solution = report_item.find('cm:compliance-solution', ns)
+			if actual_solution is None: # usually when PASSED
+				solution = ''
+			else:
+				solution = actual_solution.text
+			
+			desc_pre = description.find('\n')
+			desc_past = description.find('\nReference(s) : ')
+			description_final = description[desc_pre+2:desc_past-1]
+
+			temp_see_also = report_item.find('cm:compliance-see-also', ns)
+			if temp_see_also is None: # usually when PASSED
+				see_also = ''
+			else:
+				see_also = temp_see_also.text
+
+			compliance_wb.append([hostname, result, name, output, description_final, solution, see_also])
+
+		else:
+			if severity is not 'None': # do not include INFO stuff
+				port = (report_item.get('protocol') + "/" + report_item.get('port'))
+				name = report_item.find('plugin_name').text
+				output = report_item.find('plugin_output')
+				if output != None:
+					output = output.text
+				else:
+					output = ""
+				solution = report_item.find('solution').text if not (report_item.find('solution') is None) else ""
+				see_also = report_item.find('see_also').text if not (report_item.find('see_also') is None) else ""
+				see_also = see_also.encode()
+
+				vulns_wb.append([hostname, port, severity, '', '', name, description, output, solution, see_also])
+
+## Style options
+# Host column
+vulns_wb.column_dimensions['A'].width = 15
+for host in vulns_wb['A']:
+	host.alignment = Alignment(horizontal='center', vertical='center')
+
+# Port column
+vulns_wb.column_dimensions['B'].width = 10
+for host in vulns_wb['B']:
+	host.alignment = Alignment(horizontal='center', vertical='center')
+
+# Severity column
+vulns_wb.column_dimensions['C'].width = 14
+for severity in vulns_wb['C']:
+	if severity.value == "Low":
+		severity.fill = PatternFill(fgColor='32CD32', fill_type = 'solid')
+	elif severity.value == "Medium":
+		severity.fill = PatternFill(fgColor='FFEE08', fill_type = 'solid')
+	elif severity.value == "High":
+		severity.fill = PatternFill(fgColor='FF8C00', fill_type = 'solid')
+	elif severity.value == "Critical":
+		severity.fill = PatternFill(fgColor='FF0000', fill_type = 'solid')
+	severity.alignment = Alignment(horizontal='center', vertical='center')
+
+# MGM rating column
+vulns_wb.column_dimensions['D'].width = 18
+for name in vulns_wb['D']:
+	name.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+# Comment
+vulns_wb.column_dimensions['E'].width = 30
+for comment in vulns_wb['E']:
+	comment.alignment = Alignment(vertical='center', wrap_text=True)
+
+# Name, Description, Output, Solution, See Also column
+for column in ['F', 'G', 'H', 'I', 'J']:
+	vulns_wb.column_dimensions[column].width = 50
+	for col in vulns_wb[column]:
+		col.alignment = Alignment(vertical='center', wrap_text=True)
+
+# Center first row
+for cell in vulns_wb['A':get_column_letter(vulns_wb.max_column)]:
+	cell[0].alignment = Alignment(horizontal='center')
+
+# Add sorting filter
+vulns_wb.auto_filter.add_filter_column(2, ['Critical', 'High', 'Medium', 'Low'])
+vulns_wb.auto_filter.add_sort_condition('C:C')
+
+if vulns_wb.max_row == 1: # if table is empty
+	tab = Table(displayName="Vulnerabilities", ref="A1:J2")
+else:
+	tab = Table(displayName="Vulnerabilities", ref="A1:{}{}".format(get_column_letter(vulns_wb.max_column), vulns_wb.max_row))
+tab.tableStyleInfo = style
+vulns_wb.add_table(tab)
+
+if compliance_wb:
+	# Hostname column
+	compliance_wb.column_dimensions['A'].width = 15
+	for host in compliance_wb['A']:
+		host.alignment = Alignment(horizontal='center', vertical='center')
+
+	# compliance check result colors
+	compliance_wb.column_dimensions['B'].width = 12
+	for severity in compliance_wb['B']:
+		if severity.value == "PASSED":
+			severity.fill = PatternFill(fgColor='32CD32', fill_type='solid')
+		elif severity.value == "ERROR":
+			severity.fill = PatternFill(fgColor='FFEE08', fill_type='solid')
+		elif severity.value == "FAILED":
+			severity.fill = PatternFill(fgColor='FF0000', fill_type='solid')
+		severity.alignment = Alignment(horizontal='center', vertical='center')
+
+	# Name, Output column
+	for column in ['C', 'D']:
+		compliance_wb.column_dimensions[column].width = 30
+		for col in compliance_wb[column]:
+			col.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+	# Description, Solution column
+	for column in ['E', 'F']:
+		compliance_wb.column_dimensions[column].width = 70
+		for col in compliance_wb[column]:
+			col.alignment = Alignment(vertical='center', wrap_text=True)
+
+	# 'See Also' column
+	compliance_wb.column_dimensions['G'].width = 40
+	for see in compliance_wb['G']:
+		see.alignment = Alignment(vertical='center', wrap_text=True)
+
+	# Center first row
+	for cell in compliance_wb['A':get_column_letter(compliance_wb.max_column)]:
+		cell[0].alignment = Alignment(horizontal='center')
+
+	tab = Table(displayName="Compliance", ref="A1:{}{}".format(get_column_letter(compliance_wb.max_column), compliance_wb.max_row))
+	tab.tableStyleInfo = style
+	compliance_wb.add_table(tab)
 
 # Save the file
-wb.save(sys.argv[2])
+wb.save(filename=sys.argv[2])
