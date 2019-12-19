@@ -53,7 +53,7 @@ for report_item in root.iter('ReportItem'):
 		compliance_wb.title = "Compliance Checks"
 		compliance_wb.append(["Hostname", "Result", "Name", "Output", "Description", "Solution", "See Also"])
 		break
-	
+
 # Iterate through findings
 for host in root.iter('ReportHost'):
 	hostname = host.get('name')
@@ -78,7 +78,7 @@ for host in root.iter('ReportHost'):
 				solution = ''
 			else:
 				solution = actual_solution.text
-			
+
 			desc_pre = description.find('\n')
 			desc_past = description.find('\nReference(s) : ')
 			description_final = description[desc_pre+2:desc_past-1]
