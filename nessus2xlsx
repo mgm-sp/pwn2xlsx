@@ -92,19 +92,18 @@ for host in root.iter('ReportHost'):
 			compliance_wb.append([hostname, result, name, output, description_final, solution, see_also])
 
 		else:
-			if severity is not 'None': # do not include INFO stuff
-				port = (report_item.get('protocol') + "/" + report_item.get('port'))
-				name = report_item.find('plugin_name').text
-				output = report_item.find('plugin_output')
-				if output != None:
-					output = output.text
-				else:
-					output = ""
-				solution = report_item.find('solution').text if not (report_item.find('solution') is None) else ""
-				see_also = report_item.find('see_also').text if not (report_item.find('see_also') is None) else ""
-				see_also = see_also.encode()
+			port = (report_item.get('protocol') + "/" + report_item.get('port'))
+			name = report_item.find('plugin_name').text
+			output = report_item.find('plugin_output')
+			if output != None:
+				output = output.text
+			else:
+				output = ""
+			solution = report_item.find('solution').text if not (report_item.find('solution') is None) else ""
+			see_also = report_item.find('see_also').text if not (report_item.find('see_also') is None) else ""
+			see_also = see_also.encode()
 
-				vulns_wb.append([hostname, port, severity, '', '', name, description, output, solution, see_also])
+			vulns_wb.append([hostname, port, severity, '', '', name, description, output, solution, see_also])
 
 ## Style options
 # Host column
