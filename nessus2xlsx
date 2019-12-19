@@ -69,12 +69,12 @@ for host in root.iter('ReportHost'):
 			compliance_result = report_item.find('cm:compliance-result', ns)
 			result = compliance_result.text
 			actual_value = report_item.find('cm:compliance-actual-value', ns)
-			if actual_value is None: # usually when PASSED
+			if actual_value is None:  # usually when PASSED
 				output = ''
 			else:
 				output = actual_value.text
 			actual_solution = report_item.find('cm:compliance-solution', ns)
-			if actual_solution is None: # usually when PASSED
+			if actual_solution is None:  # usually when PASSED
 				solution = ''
 			else:
 				solution = actual_solution.text
@@ -84,7 +84,7 @@ for host in root.iter('ReportHost'):
 			description_final = description[desc_pre+2:desc_past-1]
 
 			temp_see_also = report_item.find('cm:compliance-see-also', ns)
-			if temp_see_also is None: # usually when PASSED
+			if temp_see_also is None:  # usually when PASSED
 				see_also = ''
 			else:
 				see_also = temp_see_also.text
@@ -95,7 +95,7 @@ for host in root.iter('ReportHost'):
 			port = (report_item.get('protocol') + "/" + report_item.get('port'))
 			name = report_item.find('plugin_name').text
 			output = report_item.find('plugin_output')
-			if output != None:
+			if output is not None:
 				output = output.text
 			else:
 				output = ""
@@ -153,7 +153,7 @@ for cell in vulns_wb['A':get_column_letter(vulns_wb.max_column)]:
 vulns_wb.auto_filter.add_filter_column(2, ['Critical', 'High', 'Medium', 'Low'])
 vulns_wb.auto_filter.add_sort_condition('C:C')
 
-if vulns_wb.max_row == 1: # if table is empty
+if vulns_wb.max_row == 1:  # if table is empty
 	tab = Table(displayName="Vulnerabilities", ref="A1:J2")
 else:
 	tab = Table(displayName="Vulnerabilities", ref="A1:{}{}".format(get_column_letter(vulns_wb.max_column), vulns_wb.max_row))
