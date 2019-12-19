@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# encoding: utf-8
 # Transform Nessus xml to Excel
 # Authors: Benjamin Kellermann, Björn Kirschner, Jan Rude
 # License: GPLv3
