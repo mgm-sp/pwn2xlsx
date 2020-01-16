@@ -42,8 +42,7 @@ vulns_wb.title = "Vulnerabilities"
 vulns_wb.append(["Hostname", "Port", "Severity", "MGM Rating", "Comment", "Name", "Description", "Output", "Solution", "See Also"])
 
 # Add a default style with striped rows and banded columns
-style = TableStyleInfo(name="TableStyleMedium2", showFirstColumn=False,
-                       showLastColumn=False, showRowStripes=True, showColumnStripes=True)
+style = TableStyleInfo(name="TableStyleMedium2", showRowStripes=True, showColumnStripes=False)
 
 # Check if report has compliance checks in it
 compliance_wb = ''
