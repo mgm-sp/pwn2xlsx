@@ -128,7 +128,7 @@ for name in vulns_wb['D']:
 vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='ffff99', fill_type='solid'), formula=['"Low"']))
 vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='fabf8f', fill_type='solid'), formula=['"Medium"']))
 vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='d99594', fill_type='solid'), formula=['"High"']))
-vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='000000', fill_type='solid'), font=Font(color='ffffff'), formula=['"Critical"']))
+vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='ff000000', fill_type='solid'), font=Font(color='ffffff'), formula=['"Critical"']))
 
 # Comment
 vulns_wb.column_dimensions['E'].width = 30
