@@ -9,7 +9,8 @@ import xml.etree.ElementTree as ET
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
-from openpyxl.styles import PatternFill, Alignment
+from openpyxl.styles import PatternFill, Alignment, Font
+from openpyxl.formatting.rule import CellIsRule
 
 if len(sys.argv) < 3:
 	sys.exit('Usage: %s <input-xml.nessus> <output.xlsx>' % sys.argv[0])
@@ -116,20 +117,18 @@ for host in vulns_wb['B']:
 # Severity column
 vulns_wb.column_dimensions['C'].width = 14
 for severity in vulns_wb['C']:
-	if severity.value == "Low":
-		severity.fill = PatternFill(fgColor='32CD32', fill_type = 'solid')
-	elif severity.value == "Medium":
-		severity.fill = PatternFill(fgColor='FFEE08', fill_type = 'solid')
-	elif severity.value == "High":
-		severity.fill = PatternFill(fgColor='FF8C00', fill_type = 'solid')
-	elif severity.value == "Critical":
-		severity.fill = PatternFill(fgColor='FF0000', fill_type = 'solid')
 	severity.alignment = Alignment(horizontal='center', vertical='center')
 
 # MGM rating column
 vulns_wb.column_dimensions['D'].width = 18
 for name in vulns_wb['D']:
 	name.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+# Severity + MGM rating-styling
+vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='ffff99', fill_type='solid'), formula=['"Low"']))
+vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='fabf8f', fill_type='solid'), formula=['"Medium"']))
+vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='d99594', fill_type='solid'), formula=['"High"']))
+vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='000000', fill_type='solid'), font=Font(color='ffffff'), formula=['"Critical"']))
 
 # Comment
 vulns_wb.column_dimensions['E'].width = 30
