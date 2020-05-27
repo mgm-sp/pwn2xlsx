@@ -107,22 +107,22 @@ for host in root.iter('ReportHost'):
 # Host column
 vulns_wb.column_dimensions['A'].width = 15
 for host in vulns_wb['A']:
-	host.alignment = Alignment(horizontal='center', vertical='center')
+	host.alignment = Alignment(horizontal='center', vertical='top')
 
 # Port column
 vulns_wb.column_dimensions['B'].width = 10
 for host in vulns_wb['B']:
-	host.alignment = Alignment(horizontal='center', vertical='center')
+	host.alignment = Alignment(horizontal='center', vertical='top')
 
 # Severity column
 vulns_wb.column_dimensions['C'].width = 14
 for severity in vulns_wb['C']:
-	severity.alignment = Alignment(horizontal='center', vertical='center')
+	severity.alignment = Alignment(horizontal='center', vertical='top')
 
 # MGM rating column
 vulns_wb.column_dimensions['D'].width = 18
 for name in vulns_wb['D']:
-	name.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+	name.alignment = Alignment(horizontal='center', vertical='top', wrap_text=True)
 
 # Severity + MGM rating-styling
 vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=PatternFill(bgColor='ffff99', fill_type='solid'), formula=['"Low"']))
@@ -133,17 +133,21 @@ vulns_wb.conditional_formatting.add('C:D', CellIsRule(operator='equal', fill=Pat
 # Comment
 vulns_wb.column_dimensions['E'].width = 30
 for comment in vulns_wb['E']:
-	comment.alignment = Alignment(vertical='center', wrap_text=True)
+	comment.alignment = Alignment(vertical='top', wrap_text=True)
 
 # Name, Description, Output, Solution, See Also column
 for column in ['F', 'G', 'H', 'I', 'J']:
 	vulns_wb.column_dimensions[column].width = 50
 	for col in vulns_wb[column]:
-		col.alignment = Alignment(vertical='center', wrap_text=True)
+		col.alignment = Alignment(vertical='top', wrap_text=True)
 
 # Center first row
 for cell in vulns_wb['A':get_column_letter(vulns_wb.max_column)]:
 	cell[0].alignment = Alignment(horizontal='center')
+
+# equalize height
+for i in range(vulns_wb.max_row):
+	vulns_wb.row_dimensions[i].height = 15
 
 # Add sorting filter
 vulns_wb.auto_filter.add_filter_column(2, ['Critical', 'High', 'Medium', 'Low'])
@@ -156,11 +160,11 @@ else:
 tab.tableStyleInfo = style
 vulns_wb.add_table(tab)
 
-if compliance_wb:
+if compliance_wb:  # {{{
 	# Hostname column
 	compliance_wb.column_dimensions['A'].width = 15
 	for host in compliance_wb['A']:
-		host.alignment = Alignment(horizontal='center', vertical='center')
+		host.alignment = Alignment(horizontal='center', vertical='top')
 
 	# compliance check result colors
 	compliance_wb.column_dimensions['B'].width = 12
@@ -171,32 +175,36 @@ if compliance_wb:
 			severity.fill = PatternFill(fgColor='FFEE08', fill_type='solid')
 		elif severity.value == "FAILED":
 			severity.fill = PatternFill(fgColor='FF0000', fill_type='solid')
-		severity.alignment = Alignment(horizontal='center', vertical='center')
+		severity.alignment = Alignment(horizontal='center', vertical='top')
 
 	# Name, Output column
 	for column in ['C', 'D']:
 		compliance_wb.column_dimensions[column].width = 30
 		for col in compliance_wb[column]:
-			col.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+			col.alignment = Alignment(horizontal='center', vertical='top', wrap_text=True)
 
 	# Description, Solution column
 	for column in ['E', 'F']:
 		compliance_wb.column_dimensions[column].width = 70
 		for col in compliance_wb[column]:
-			col.alignment = Alignment(vertical='center', wrap_text=True)
+			col.alignment = Alignment(vertical='top', wrap_text=True)
 
 	# 'See Also' column
 	compliance_wb.column_dimensions['G'].width = 40
 	for see in compliance_wb['G']:
-		see.alignment = Alignment(vertical='center', wrap_text=True)
+		see.alignment = Alignment(vertical='top', wrap_text=True)
 
 	# Center first row
 	for cell in compliance_wb['A':get_column_letter(compliance_wb.max_column)]:
 		cell[0].alignment = Alignment(horizontal='center')
 
+	# equalize height
+	for i in range(compliance_wb.max_row):
+		compliance_wb.row_dimensions[i].height = 15
+
 	tab = Table(displayName="Compliance", ref="A1:{}{}".format(get_column_letter(compliance_wb.max_column), compliance_wb.max_row))
 	tab.tableStyleInfo = style
 	compliance_wb.add_table(tab)
-
+# }}}
 # Save the file
 wb.save(filename=sys.argv[2])
