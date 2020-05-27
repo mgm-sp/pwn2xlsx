@@ -147,7 +147,7 @@ for cell in vulns_wb['A':get_column_letter(vulns_wb.max_column)]:
 
 # equalize height
 for i in range(vulns_wb.max_row):
-	vulns_wb.row_dimensions[i].height = 15
+	vulns_wb.row_dimensions[i+1].height = 15
 
 # Add sorting filter
 vulns_wb.auto_filter.add_filter_column(2, ['Critical', 'High', 'Medium', 'Low'])
