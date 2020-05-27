@@ -11,6 +11,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.styles import PatternFill, Alignment, Font
 from openpyxl.formatting.rule import CellIsRule
+from openpyxl.worksheet.filters import SortCondition, SortState, AutoFilter
 
 if len(sys.argv) < 3:
 	sys.exit('Usage: %s <input-xml.nessus> <output.xlsx>' % sys.argv[0])
@@ -149,14 +150,25 @@ for cell in vulns_wb['A':get_column_letter(vulns_wb.max_column)]:
 for i in range(vulns_wb.max_row):
 	vulns_wb.row_dimensions[i+1].height = 15
 
-# Add sorting filter
-vulns_wb.auto_filter.add_filter_column(2, ['Critical', 'High', 'Medium', 'Low'])
-vulns_wb.auto_filter.add_sort_condition('C:C')
-
+# Get Table dimensions
 if vulns_wb.max_row == 1:  # if table is empty
-	tab = Table(displayName="Vulnerabilities", ref="A1:J2")
+	dim = "A1:J2"
 else:
-	tab = Table(displayName="Vulnerabilities", ref="A1:{}{}".format(get_column_letter(vulns_wb.max_column), vulns_wb.max_row))
+	dim = vulns_wb.dimensions
+
+# Add sorting filter
+vulnsort = "Critical, High, Medium, Low, None"
+sort = [
+	SortCondition(ref='D:D', customList=vulnsort),  # MGM Rating
+	SortCondition(ref='C:C', customList=vulnsort),  # Nessus rating
+	SortCondition(ref='F:F'),                       # Plugin Name
+	SortCondition(ref='A:A'),                       # Hostname
+	SortCondition(ref='B:B')                        # Port
+]
+ss = SortState(ref=dim, sortCondition=sort)
+af = AutoFilter(ref=dim, sortState=ss)
+
+tab = Table(displayName="Vulnerabilities", ref=dim, sortState=ss, autoFilter=af)
 tab.tableStyleInfo = style
 vulns_wb.add_table(tab)
 
