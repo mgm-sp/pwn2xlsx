@@ -94,8 +94,8 @@ for host in root.iter('ReportHost'):
 			port = (report_item.get('protocol') + "/" + report_item.get('port'))
 			name = report_item.find('plugin_name').text
 			output = report_item.find('plugin_output')
-			if output is not None:
-				output = output.text
+			if output is not None and output.text is not None:
+				output = output.text.lstrip().rstrip()
 			else:
 				output = ""
 			solution = report_item.find('solution').text if not (report_item.find('solution') is None) else ""
