@@ -162,6 +162,7 @@ sort = [
 	SortCondition(ref='D:D', customList=vulnsort),  # MGM Rating
 	SortCondition(ref='C:C', customList=vulnsort),  # Nessus rating
 	SortCondition(ref='F:F'),                       # Plugin Name
+	SortCondition(ref='H:H'),                       # Output -> useful because often similar things are reported
 	SortCondition(ref='A:A'),                       # Hostname
 	SortCondition(ref='B:B')                        # Port
 ]
