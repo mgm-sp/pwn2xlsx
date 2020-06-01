@@ -5,6 +5,7 @@
 # License: GPLv3
 import sys
 import os
+import re
 import xml.etree.ElementTree as ET
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
@@ -12,6 +13,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.styles import PatternFill, Alignment, Font
 from openpyxl.formatting.rule import CellIsRule
 from openpyxl.worksheet.filters import SortCondition, SortState, AutoFilter
+from openpyxl import load_workbook
 
 if len(sys.argv) < 3:
 	sys.exit('Usage: %s <input-xml.nessus> <output.xlsx>' % sys.argv[0])
@@ -19,8 +21,28 @@ if len(sys.argv) < 3:
 if not os.path.exists(sys.argv[1]):
 	sys.exit('ERROR: Input %s was not found!' % sys.argv[1])
 
+# guess title
+sheet_title = os.path.basename(sys.argv[1])
+sheet_title = re.sub(r"\.nessus$", "", sheet_title)         # remove fileending
+sheet_title = re.sub(r"_[0-9a-zA-Z]{6}$", "", sheet_title)  # remove random-string added by nessus
+sheet_title = re.sub(r"_", " ", sheet_title)                # replace _ with " "
+
+existing_tables = []
 if os.path.exists(sys.argv[2]):
-	sys.exit('ERROR: Output %s already exists!' % sys.argv[2])
+	print('WARNING: Output %s already exists, adding a sheet.' % sys.argv[2])
+	wb = load_workbook(sys.argv[2])
+	for ws in wb.worksheets:
+		for tbl in ws._tables:
+			existing_tables.append(tbl.name)
+	vulns_wb = wb.create_sheet()
+else:
+	# Open up a new excel file
+	wb = Workbook()
+	vulns_wb = wb.active
+
+
+vulns_wb.title = sheet_title
+vulns_wb.append(["Hostname", "Port", "Severity", "MGM Rating", "Comment", "Name", "Description", "Output", "Solution", "See Also"])
 
 ns = {'cm': 'http://www.nessus.org/cm'}
 
@@ -35,12 +57,6 @@ severity_levels = {
 xml = ET.parse(sys.argv[1])
 root = xml.getroot()
 
-# Open up a new excel file
-wb = Workbook()
-vulns_wb = wb.active
-vulns_wb.title = "Vulnerabilities"
-vulns_wb.append(["Hostname", "Port", "Severity", "MGM Rating", "Comment", "Name", "Description", "Output", "Solution", "See Also"])
-
 # Add a default style with striped rows and banded columns
 style = TableStyleInfo(name="TableStyleMedium2", showRowStripes=True, showColumnStripes=False)
 
@@ -49,7 +65,8 @@ compliance_wb = ''
 for report_item in root.iter('ReportItem'):
 	if "Compliance" in report_item.get('pluginName'):
 		compliance_wb = wb.create_sheet()
-		compliance_wb.title = "Compliance Checks"
+		vulns_wb.title = ("%s (Vulnerabilities)" % sheet_title)
+		compliance_wb.title = ("%s (Compliance Checks)" % sheet_title)
 		compliance_wb.append(["Hostname", "Result", "Name", "Output", "Description", "Solution", "See Also"])
 		break
 
@@ -169,7 +186,10 @@ sort = [
 ss = SortState(ref=dim, sortCondition=sort)
 af = AutoFilter(ref=dim, sortState=ss)
 
-tab = Table(displayName="Vulnerabilities", ref=dim, sortState=ss, autoFilter=af)
+tab_title = "%s_Vulnerabilities" % re.sub(r"[^a-zA-Z0-9]", "_", sheet_title)
+while tab_title in existing_tables:
+	tab_title += '1'
+tab = Table(displayName=tab_title, ref=dim, sortState=ss, autoFilter=af)
 tab.tableStyleInfo = style
 vulns_wb.add_table(tab)
 
@@ -215,7 +235,10 @@ if compliance_wb:  # {{{
 	for i in range(compliance_wb.max_row):
 		compliance_wb.row_dimensions[i+1].height = 15
 
-	tab = Table(displayName="Compliance", ref="A1:{}{}".format(get_column_letter(compliance_wb.max_column), compliance_wb.max_row))
+	tab_title = "%s_Compliance" % re.sub(r"[^a-zA-Z0-9]", "_", sheet_title)
+	while tab_title in existing_tables:
+		tab_title += '1'
+	tab = Table(displayName=tab_title, ref="A1:{}{}".format(get_column_letter(compliance_wb.max_column), compliance_wb.max_row))
 	tab.tableStyleInfo = style
 	compliance_wb.add_table(tab)
 # }}}
