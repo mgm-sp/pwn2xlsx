@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from openpyxl import Workbook
 import sys
 if len(sys.argv) < 3:
-    print "Usage: ",sys.argv[0] ," scan1.xml [scan2.xml [scan...]] outfile.xlsx" 
+    print("Usage: ", sys.argv[0], " scan1.xml [scan2.xml [scan...]] outfile.xlsx")
     exit(0)
 
 target = sys.argv.pop()
@@ -14,7 +14,6 @@ ports = []
 for f in sys.argv[1:]:
     xml = ET.parse(f)
     root = xml.getroot()
-
 
     for host in root.iter('host'):
         address = host.find('address').get('addr')
@@ -43,7 +42,7 @@ wb = Workbook()
 
 ws = wb.worksheets[0]
 ws.title = "Services"
-ws.append(["Adresse","Hostname", "Port", "Erkennung", "Service", "Product"])
+ws.append(["Adresse", "Hostname", "Port", "Erkennung", "Service", "Product"])
 for entry in ports:
     ws.append(entry)
 wb.save(target)
