@@ -4,11 +4,15 @@
 import xml.etree.ElementTree as ET
 from openpyxl import Workbook
 import sys
+import os
+
 if len(sys.argv) < 3:
-    print("Usage: ", sys.argv[0], " scan1.xml [scan2.xml [scan...]] outfile.xlsx")
-    exit(0)
+    sys.exit("Usage: %s scan1.xml [scan2.xml [scan...]] outfile.xlsx" % sys.argv[0])
 
 target = sys.argv.pop()
+
+if os.path.exists(target):
+    sys.exit('ERROR: Output %s already exists' % target)
 
 ports = []
 for f in sys.argv[1:]:
