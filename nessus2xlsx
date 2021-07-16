@@ -60,10 +60,10 @@ root = xml.getroot()
 # Add a default style with striped rows and banded columns
 style = TableStyleInfo(name="TableStyleMedium2", showRowStripes=True, showColumnStripes=False)
 
-# Check if report has compliance checks in it
+# Check if report has compliance checks in it; ignore PCI DSS entries
 compliance_wb = ''
 for report_item in root.iter('ReportItem'):
-	if "Compliance" in report_item.get('pluginName'):
+	if "Compliance" in report_item.get('pluginName') and not "PCI DSS" in report_item.get('pluginName'):
 		compliance_wb = wb.create_sheet()
 		vulns_wb.title = ("%s (Vulnerabilities)" % sheet_title)
 		compliance_wb.title = ("%s (Compliance Checks)" % sheet_title)
@@ -80,46 +80,48 @@ for host in root.iter('ReportHost'):
 
 		pluginFamily = report_item.get('pluginFamily')
 		# Compliance Check
-		if pluginFamily == "Policy Compliance":
-			name = report_item.find('cm:compliance-check-name', ns).text
-			compliance_result = report_item.find('cm:compliance-result', ns)
-			result = compliance_result.text
-			actual_value = report_item.find('cm:compliance-actual-value', ns)
-			if actual_value is None:  # usually when PASSED
-				output = ''
-			else:
-				output = actual_value.text
-			actual_solution = report_item.find('cm:compliance-solution', ns)
-			if actual_solution is None:  # usually when PASSED
-				solution = ''
-			else:
-				solution = actual_solution.text
+		if pluginFamily == ("Policy Compliance" or "Settings"):
+			pci = report_item.get('pluginName')
+			if not "pci dss compliance" in pci.lower():
+				name = report_item.find('cm:compliance-check-name', ns).text
+				compliance_result = report_item.find('cm:compliance-result', ns)
+				result = compliance_result.text
+				actual_value = report_item.find('cm:compliance-actual-value', ns)
+				if actual_value is None:  # usually when PASSED
+					output = ''
+				else:
+					output = actual_value.text
+				actual_solution = report_item.find('cm:compliance-solution', ns)
+				if actual_solution is None:  # usually when PASSED
+					solution = ''
+				else:
+					solution = actual_solution.text
 
-			desc_pre = description.find('\n')
-			desc_past = description.find('\nReference(s) : ')
-			description_final = description[desc_pre+2:desc_past-1]
+				desc_pre = description.find('\n')
+				desc_past = description.find('\nReference(s) : ')
+				description_final = description[desc_pre+2:desc_past-1]
 
-			temp_see_also = report_item.find('cm:compliance-see-also', ns)
-			if temp_see_also is None:  # usually when PASSED
-				see_also = ''
-			else:
-				see_also = temp_see_also.text
+				temp_see_also = report_item.find('cm:compliance-see-also', ns)
+				if temp_see_also is None:  # usually when PASSED
+					see_also = ''
+				else:
+					see_also = temp_see_also.text
 
-			compliance_wb.append([hostname, result, name, output, description_final, solution, see_also])
-
+				compliance_wb.append([hostname, result, name, output, description_final, solution, see_also])
 		else:
 			port = (report_item.get('protocol') + "/" + report_item.get('port'))
 			name = report_item.find('plugin_name').text
-			output = report_item.find('plugin_output')
-			if output is not None and output.text is not None:
-				output = output.text.lstrip().rstrip()
-			else:
-				output = ""
-			solution = report_item.find('solution').text if not (report_item.find('solution') is None) else ""
-			see_also = report_item.find('see_also').text if not (report_item.find('see_also') is None) else ""
-			see_also = see_also.encode()
+			if not "pci dss compliance" in name.lower(): # ignore 'PCI DSS Settings' entries
+				output = report_item.find('plugin_output')
+				if output is not None and output.text is not None:
+					output = output.text.lstrip().rstrip()
+				else:
+					output = ""
+				solution = report_item.find('solution').text if not (report_item.find('solution') is None) else ""
+				see_also = report_item.find('see_also').text if not (report_item.find('see_also') is None) else ""
+				see_also = see_also.encode()
 
-			vulns_wb.append([hostname, port, severity, '', '', name, description, output, solution, see_also])
+				vulns_wb.append([hostname, port, severity, '', '', name, description, output, solution, see_also])
 
 ## Style options
 # Host column
