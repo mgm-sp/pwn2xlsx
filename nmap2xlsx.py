@@ -1,6 +1,8 @@
 #!/usr/bin/python
+# encoding: utf-8
 # Transform Nmap xml to Excel
-# Author: Benjamin Kellermann, License: GPLv3
+# Author: Benjamin Kellermann
+# License: GPLv3
 import xml.etree.ElementTree as ET
 from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo

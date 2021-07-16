@@ -15,11 +15,12 @@ from openpyxl.formatting.rule import CellIsRule
 from openpyxl.worksheet.filters import SortCondition, SortState, AutoFilter
 from openpyxl import load_workbook
 
-if len(sys.argv) < 3:
-	sys.exit('Usage: %s <input-xml.nessus> <output.xlsx>' % sys.argv[0])
-
 if not os.path.exists(sys.argv[1]):
 	sys.exit('ERROR: Input %s was not found!' % sys.argv[1])
+
+# output file
+file_name = os.path.basename(sys.argv[1])
+output_file = file_name.replace(".nessus", ".xlsx")
 
 # guess title
 sheet_title = os.path.basename(sys.argv[1])
@@ -28,9 +29,9 @@ sheet_title = re.sub(r"_[0-9a-zA-Z]{6}$", "", sheet_title)  # remove random-stri
 sheet_title = re.sub(r"_", " ", sheet_title)                # replace _ with " "
 
 existing_tables = []
-if os.path.exists(sys.argv[2]):
-	print('WARNING: Output %s already exists, adding a sheet.' % sys.argv[2])
-	wb = load_workbook(sys.argv[2])
+if os.path.exists(output_file):
+	print('WARNING: Output %s already exists, adding a sheet.' % output_file)
+	wb = load_workbook(output_file)
 	for ws in wb.worksheets:
 		for tbl in ws._tables:
 			existing_tables.append(tbl.name)
@@ -246,4 +247,4 @@ if compliance_wb:  # {{{
 	compliance_wb.add_table(tab)
 # }}}
 # Save the file
-wb.save(filename=sys.argv[2])
+wb.save(filename=output_file)

@@ -1,8 +1,15 @@
 # pwn2xlsx
-Excel exporters for some Pentest tools
+Excel exporters for Nessus and Nmap scans
 
-* nessus2xlsx, nmap2xlsx
-  Transform Nessus/nmap xml to Excel
+### Usage
+
+```
+# Transform Nessus file to Excel
+$ python3 nessus2xlsx.py scan.nessus
+
+# Transform Nmap file(s) to Excel
+$ python3 nmap2xlsx.py scan1.xml [scan2.xml [scan...]] outfile.xlsx
+```
 
 ### Requirements
 
