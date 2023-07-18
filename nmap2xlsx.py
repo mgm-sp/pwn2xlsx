@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # encoding: utf-8
 # Transform Nmap xml to Excel
-# Author: Benjamin Kellermann
+# Author: Benjamin Kellermann; Jan Rude
 # License: GPLv3
 import xml.etree.ElementTree as ET
 from openpyxl import Workbook
@@ -25,23 +25,23 @@ for f in sys.argv[1:]:
     for host in root.iter('host'):
         address = host.find('address').get('addr')
         hostname = []
-        for h in host.find('hostnames').iter('hostname'):
-            hostname.append(h.get('name'))
-
-        for p in host.find('ports').iter('port'):
-            port = str(p.get('portid')) + "/" + p.get('protocol')
-            reason = p.find('state').get('reason')
-            product = []
-            if p.find('service') is not None:
-                service = p.find('service').get('name')
-                product.append(p.find('service').get('product'))
-                product.append(p.find('service').get('version'))
-                product.append(p.find('service').get('extra'))
-                product = [x for x in product if x is not None]
-            else:
-                service = ""
-            ports.append([address, ", ".join(hostname), port, reason, service, " ".join(product)])
-
+        if host.find('hostnames') is not None:
+            for h in host.find('hostnames').iter('hostname'):
+                hostname.append(h.get('name'))
+        if host.find('ports') is not None:
+            for p in host.find('ports').iter('port'):
+                port = str(p.get('portid')) + "/" + p.get('protocol')
+                reason = p.find('state').get('reason')
+                product = []
+                if p.find('service') is not None:
+                    service = p.find('service').get('name')
+                    product.append(p.find('service').get('product'))
+                    product.append(p.find('service').get('version'))
+                    product.append(p.find('service').get('extra'))
+                    product = [x for x in product if x is not None]
+                else:
+                    service = ""
+                ports.append([address, ", ".join(hostname), port, reason, service, " ".join(product)])
 
 # Save the file
 # Open up a new excel file
@@ -49,7 +49,7 @@ wb = Workbook()
 
 ws = wb.worksheets[0]
 ws.title = "Services"
-ws.append(["Adresse", "Hostname", "Port", "Erkennung", "Service", "Product"])
+ws.append(["Adresse", "Hostname", "Port", "Erkennung", "Service", "Produkt"])
 ws.column_dimensions['A'].width = 12
 ws.column_dimensions['B'].width = 50
 ws.column_dimensions['C'].width = 10
