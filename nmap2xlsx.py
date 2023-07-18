@@ -21,7 +21,7 @@ target = sys.argv.pop()
 if os.path.exists(target):
     sys.exit('ERROR: Output %s already exists' % target)
 
-ports = []
+ports = set()
 for f in sys.argv[1:]:
     try:
         xml = ET.parse(f)
@@ -49,8 +49,7 @@ for f in sys.argv[1:]:
                     product = [x for x in product if x is not None]
                 else:
                     service = ""
-                ports.append([address, ", ".join(hostname), port, reason, service, " ".join(product)])
-
+                ports.add((address, ", ".join(hostname), port, reason, service, " ".join(product)))
 if ports:
     # Save the file
     # Open up a new excel file
