@@ -9,6 +9,10 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 import sys
 import os
 
+class bcolors:
+    WARNING = '\033[93m'
+    ENDC = '\033[0m'
+
 if len(sys.argv) < 3:
     sys.exit("Usage: %s scan1.xml [scan2.xml [scan...]] outfile.xlsx" % sys.argv[0])
 
@@ -19,7 +23,11 @@ if os.path.exists(target):
 
 ports = []
 for f in sys.argv[1:]:
-    xml = ET.parse(f)
+    try:
+        xml = ET.parse(f)
+    except:
+        print(bcolors.WARNING + "PARSING ERROR! Skipping file '{}'".format(f) + bcolors.ENDC)
+        continue
     root = xml.getroot()
 
     for host in root.iter('host'):
@@ -43,33 +51,36 @@ for f in sys.argv[1:]:
                     service = ""
                 ports.append([address, ", ".join(hostname), port, reason, service, " ".join(product)])
 
-# Save the file
-# Open up a new excel file
-wb = Workbook()
+if ports:
+    # Save the file
+    # Open up a new excel file
+    wb = Workbook()
 
-ws = wb.worksheets[0]
-ws.title = "Services"
-ws.append(["Adresse", "Hostname", "Port", "Erkennung", "Service", "Produkt"])
-ws.column_dimensions['A'].width = 12
-ws.column_dimensions['B'].width = 50
-ws.column_dimensions['C'].width = 10
-ws.column_dimensions['D'].width = 15
-ws.column_dimensions['E'].width = 20
-ws.column_dimensions['F'].width = 50
+    ws = wb.worksheets[0]
+    ws.title = "Services"
+    ws.append(["Adresse", "Hostname", "Port", "Erkennung", "Service", "Produkt"])
+    ws.column_dimensions['A'].width = 12
+    ws.column_dimensions['B'].width = 50
+    ws.column_dimensions['C'].width = 10
+    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['E'].width = 20
+    ws.column_dimensions['F'].width = 50
 
-# Add a default style with striped rows and banded columns
-style = TableStyleInfo(name="TableStyleMedium2", showRowStripes=True, showColumnStripes=False)
+    # Add a default style with striped rows and banded columns
+    style = TableStyleInfo(name="TableStyleMedium2", showRowStripes=True, showColumnStripes=False)
 
-for entry in ports:
-    ws.append(entry)
+    for entry in ports:
+        ws.append(entry)
 
-# Get Table dimensions
-if ws.max_row == 1:  # if table is empty
-    dim = "A1:J2"
+    # Get Table dimensions
+    if ws.max_row == 1:  # if table is empty
+        dim = "A1:J2"
+    else:
+        dim = ws.dimensions
+
+    tab = Table(displayName="Services", ref=dim)
+    tab.tableStyleInfo = style
+    ws.add_table(tab)
+    wb.save(target)
 else:
-    dim = ws.dimensions
-
-tab = Table(displayName="Services", ref=dim)
-tab.tableStyleInfo = style
-ws.add_table(tab)
-wb.save(target)
+    print("No open ports found.")
