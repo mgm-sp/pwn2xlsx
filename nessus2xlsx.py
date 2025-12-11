@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # encoding: utf-8
 # Transform Nessus xml to Excel
 # Authors: Benjamin Kellermann, Björn Kirschner, Jan Rude
@@ -33,8 +33,7 @@ if os.path.exists(output_file):
 	print('WARNING: Output %s already exists, adding a sheet.' % output_file)
 	wb = load_workbook(output_file)
 	for ws in wb.worksheets:
-		for tbl in ws._tables:
-			existing_tables.append(tbl.name)
+		existing_tables.extend(ws.tables.keys())
 	vulns_wb = wb.create_sheet()
 else:
 	# Open up a new excel file
@@ -124,7 +123,8 @@ for host in root.iter('ReportHost'):
 
 				vulns_wb.append([hostname, port, severity, '', '', name, description, output, solution, see_also])
 
-## Style options
+
+# Style options
 # Host column
 vulns_wb.column_dimensions['A'].width = 15
 for host in vulns_wb['A']:
