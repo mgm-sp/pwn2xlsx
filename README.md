@@ -6,7 +6,7 @@ Excel exporters for Nessus and Nmap scans
 
 ```
 # Transform Nessus file to Excel
-$ nessus2xlsx scan.nessus
+$ nessus2xlsx scan.nessus [outfile.xlsx]
 
 # Transform Nmap file(s) to Excel
 $ nmap2xlsx scan1.xml [scan2.xml [scan...]] outfile.xlsx

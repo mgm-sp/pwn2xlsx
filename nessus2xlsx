@@ -15,37 +15,59 @@ from openpyxl.formatting.rule import CellIsRule
 from openpyxl.worksheet.filters import SortCondition, SortState, AutoFilter
 from openpyxl import load_workbook
 
-if not os.path.exists(sys.argv[1]):
-	sys.exit('ERROR: Input %s was not found!' % sys.argv[1])
+import argparse
+
+parser = argparse.ArgumentParser(
+	description="Transform Nessus .nessus XML export to XLSX.",
+	formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+
+parser.add_argument("input_file", help="Input .nessus file")
+parser.add_argument("output_file", nargs="?", help="Optional output .xlsx file")
+parser.add_argument(
+	"--new-sheet",
+	action="store_true",
+	help="Create new sheet when output file exists (instead of appending to active sheet)"
+)
+
+args = parser.parse_args()
+
+if not os.path.exists(args.input_file):
+	sys.exit(f"ERROR: Input {args.input_file} was not found!")
 
 # output file
-file_name = os.path.basename(sys.argv[1])
-if len(sys.argv) > 2 and sys.argv[2]:
-	output_file = os.path.basename(sys.argv[2])
-else
-	output_file = file_name.replace(".nessus", ".xlsx")
+if args.output_file:
+	output_file = os.path.basename(args.output_file)
+else:
+	output_file = os.path.basename(args.input_file).replace(".nessus", ".xlsx")
 
 # guess title
-sheet_title = os.path.basename(sys.argv[1])
+sheet_title = os.path.basename(args.input_file)
 sheet_title = re.sub(r"\.nessus$", "", sheet_title)         # remove fileending
 sheet_title = re.sub(r"_[0-9a-zA-Z]{6}$", "", sheet_title)  # remove random-string added by nessus
 sheet_title = re.sub(r"_", " ", sheet_title)                # replace _ with " "
 
 existing_tables = []
 if os.path.exists(output_file):
-	print('WARNING: Output %s already exists, adding a sheet.' % output_file)
 	wb = load_workbook(output_file)
 	for ws in wb.worksheets:
 		existing_tables.extend(ws.tables.keys())
-	vulns_wb = wb.create_sheet()
+
+	if args.new_sheet:
+		print(f'INFO: Output {output_file} already exists, adding a new sheet.')
+		vulns_wb = wb.create_sheet()
+		vulns_wb.title = sheet_title
+		vulns_wb.append(["Hostname", "Port", "Severity", "MGM Rating", "Comment", "Name", "Description", "Output", "Solution", "See Also"])
+	else:
+		print(f'INFO: Output {output_file} already exists, appending to the existing sheet.')
+		vulns_wb = wb.active
+
 else:
 	# Open up a new excel file
 	wb = Workbook()
 	vulns_wb = wb.active
-
-
-vulns_wb.title = sheet_title
-vulns_wb.append(["Hostname", "Port", "Severity", "MGM Rating", "Comment", "Name", "Description", "Output", "Solution", "See Also"])
+	vulns_wb.title = sheet_title
+	vulns_wb.append(["Hostname", "Port", "Severity", "MGM Rating", "Comment", "Name", "Description", "Output", "Solution", "See Also"])
 
 ns = {'cm': 'http://www.nessus.org/cm'}
 
@@ -57,7 +79,7 @@ severity_levels = {
 	4: 'Critical'
 }
 
-xml = ET.parse(sys.argv[1])
+xml = ET.parse(args.input_file)
 root = xml.getroot()
 
 # Add a default style with striped rows and banded columns
@@ -193,12 +215,25 @@ sort = [
 ss = SortState(ref=dim, sortCondition=sort)
 af = AutoFilter(ref=dim, sortState=ss)
 
-tab_title = "%s_Vulnerabilities" % re.sub(r"[^a-zA-Z0-9]", "_", sheet_title)
-while tab_title in existing_tables:
-	tab_title += '1'
-tab = Table(displayName=tab_title, ref=dim, sortState=ss, autoFilter=af)
-tab.tableStyleInfo = style
-vulns_wb.add_table(tab)
+# Update existing table if there is already one (if file is updated)
+if vulns_wb.tables:
+	existing_tab = list(vulns_wb.tables.values())[0]
+	existing_tab.ref = dim
+	existing_tab.sortState = ss
+	if existing_tab.autoFilter is None:
+		existing_tab.autoFilter = af
+	else:
+		existing_tab.autoFilter.ref = dim
+		existing_tab.autoFilter.sortState = ss
+else:
+	tab_title = "%s_Vulnerabilities" % re.sub(r"[^a-zA-Z0-9]", "_", sheet_title)
+	while tab_title in existing_tables:
+		tab_title += '1'
+
+	tab = Table(displayName=tab_title, ref=dim, sortState=ss, autoFilter=af)
+	tab.tableStyleInfo = style
+	vulns_wb.add_table(tab)
+
 
 if compliance_wb:  # {{{
 	# Hostname column
